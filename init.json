@@ -1,0 +1,43 @@
+{
+    "servers":
+    [
+        {
+            "code":"default",
+            "location":"ping based"
+        },
+        {
+            "code":"eus",
+            "location":"us east"
+        },{
+            "code":"cus",
+            "location":"us central"
+        },{
+            "code":"scus",
+            "location":"us south central"
+        },{
+            "code":"wus",
+            "location":"us west"
+        },{
+            "code":"sbr",
+            "location":"brazil south"
+        },{
+            "code":"neu",
+            "location":"europe north"
+        },{
+            "code":"weu",
+            "location":"europe west"
+        },{
+            "code":"eas",
+            "location":"asia east"
+        },{
+            "code":"seas",
+            "location":"asia south east"
+        },{
+            "code":"eau",
+            "location":"australia east"
+        },{
+            "code":"wja",
+            "location":"japan west"
+        }
+      ]
+}

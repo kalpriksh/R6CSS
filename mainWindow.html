@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Something</title>
+    <link rel="stylesheet" href="./node_modules/materialize-css/dist/css/materialize.min.css">
+    <link rel="stylesheet" href="./mainWindow.css">
+</head>
+
+
+<body>
+    
+    <nav>
+        <div class="nav-wrapper teal lighten-1">
+             <div class="brand-logo left"> <img width="50"  src="./assets/rainbow-six-logo-transparent-1.png" alt="yaha pic aani thi"> Rainbow 6 Server Selector</div>
+        </div>
+    </nav>
+    
+
+    <!-- Modal Structure -->
+    <div id="modal1" class="modal">
+      <div class="modal-content">
+        <h4>Enter GameSettings.ini path</h4>
+        <label for="item"></label>
+        <input type="text" id="item" autofocus placeholder="enter path to the GameSettings.ini" required = true>
+      </div>
+      <div class="modal-footer">
+        <button data-target="modal1" class="btn waves-effect waves-light" onclick="setPath()">ok</button>
+    </div>
+    </div>
+
+    
+
+  <!-- Dropdown Trigger -->
+
+  <div class="container file-path ">
+    <div class="row">
+        <div class="col s12 m6">
+          <div class="card #4db6ac teal lighten-1">
+            <div class="card-content white-text">
+              <span class="card-title">Current Server</span>
+              <p id="currentServer"></p>
+            </div>
+          </div>
+        </div>
+    </div>
+    
+    <div class="input-field col s12">
+        <select id="server-options">
+          <option value="default" disabled selected>Choose your server</option>
+        </select>
+        <label>Server Select</label>
+    </div>
+
+    <button class="btn waves-effect waves-light" onclick="changeServer()" id="changeBtn">Change</button>
+    <a class="waves-effect waves-light btn modal-trigger" href="#modal1">Set Path</a>
+
+
+  </div>
+
+  <script>window.$ = window.jQuery = require('jquery');</script>
+  <script src="./node_modules/materialize-css/dist/js/materialize.js"></script>
+
+<script>
+        const electron = require('electron');
+        const {ipcRenderer} = electron;  
+        let initialConfig = require('./init.json');
+        const fs = require('fs');
+        
+        let currentServer;
+        let filePath;
+        let config;
+
+        let promise = new Promise((res,rej) => {
+
+            
+            
+                let newData;
+                fs.readFile('path.txt', (err, buff) => {
+                    if(err){
+                        M.toast({html: err});
+                    } else {
+                        const lines = buff.toString().split(/\r?\n/);
+                        lines.forEach(line => {
+                            
+                            if(line.indexOf(`path:`)>=0){
+                                newData = line.replace(`path:`,'');
+                            }
+
+                        });
+                    }
+                    config = {servers: initialConfig.servers, path: newData}
+                    res();
+                })
+
+            
+
+        })
+
+        promise.then(() => {
+
+        if(config.servers){
+            const serverList = $('#server-options');
+            config.servers.forEach(zone => {
+                const option = `<option value="`+zone.code+`">`+zone.location+`</option>`;
+                serverList.append(option);
+            });
+        }
+        if(!config.path){
+            const pathInput = document.querySelector('#entryPath');
+            $('#currentServer').append('enter file location');
+            $('#changeBtn').attr("disabled",true)
+
+        } else {
+            fs.readFile(config.path, (err,buff) =>{
+                if(err)
+                {
+                    M.toast({html: err});
+                    $('#currentServer').append('file not found :(');
+                    $('#changeBtn').attr("disabled",true)
+
+                } else {
+                    const newData = buff.toString();
+                    currentServer = getServer(newData);
+                    $('#currentServer').append(currentServer);                        
+                } 
+            })
+        }
+
+        $(document).ready( () => {
+           
+            $('select').formSelect();
+            
+            const elems = document.querySelectorAll('.modal');
+            const options = {};
+            const instance = M.Modal.init(elems, options);
+        
+        });
+
+        
+
+        
+
+    })
+        
+        
+        //for initial setup
+        ipcRenderer.on('app:init',(e,config) => {
+            console.log(config);
+        })
+
+
+        //saving user l
+
+        //finding server in the file
+        getServer = (data) => {
+            const lines = data.split(/\r?\n/);
+            let server;
+            lines.forEach(line => {
+                
+                if(line.indexOf("DataCenterHint=")>=0){
+                    console.log(line);
+                    server = line.replace("DataCenterHint=",'');
+                }
+            });
+
+            return server; 
+        }
+
+        //changing server
+        changeServer = () => {
+            
+            let newData;
+            const server = $('#server-options').val();
+            fs.readFile(config.path, (err,buff) =>{
+            if(err)
+            {
+                M.toast({html: err});
+            } else {
+                const lines = buff.toString().split(/\r?\n/);
+
+                lines.forEach(line => {
+
+                    if(line.indexOf("DataCenterHint=")>=0){
+                        newData = buff.toString().replace(line,"DataCenterHint="+server);
+                    }
+                    
+                });
+
+            }
+            
+            
+            fs.writeFile(config.path,newData, (err) =>{
+                    if(err)
+                    {
+                        console.log(err);
+                    }
+                    M.toast({html: 'Server Changed enjoy!'})
+                    
+                    document.querySelector('#currentServer').innerHTML = " ";
+                    $('#currentServer').append(server);
+                })
+            })
+
+        }
+
+ 
+        setPath = () => {
+            
+            let filePath = $('#item').val();
+            fs.readFile('path.txt', (err, buff) => {
+                if(err){
+                    M.toast({html: err});
+                } else {
+                    const lines = buff.toString().split(/\r?\n/);
+                    lines.forEach(line => {
+                        if(line.indexOf(`path:`)>=0){
+                            filePath = filePath.replace(/\\/g, '/')
+                            newData = buff.toString().replace(line,`path:`+filePath+`/GameSettings.ini`);
+                        }
+                    });
+                    
+                    fs.writeFile('path.txt',newData, (err) =>{
+                        if(err)
+                        {
+                            M.toast({html: err});
+                        } else {
+                            M.toast({html: 'path set!'});
+                            window.location.reload();
+                        }
+                    });
+                }
+                $('#modal1').modal('close');
+            })
+        }
+
+        
+</script>
+
+
+</body>
+</html>
